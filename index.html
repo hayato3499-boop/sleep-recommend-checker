@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>睡眠推奨チェッカー 最小版</title>
+<style>
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f6fb;margin:0;color:#1f2937}
+.wrap{max-width:900px;margin:auto;padding:14px}
+.card{background:#fff;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 4px 14px #0001}
+h1{font-size:24px;margin:4px 0}h2{font-size:18px;margin:0 0 10px}
+p,.small{color:#6b7280;font-size:13px;line-height:1.6}
+label{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
+select,input,button{width:100%;box-sizing:border-box;border-radius:12px;border:1px solid #d1d5db;padding:12px;font-size:16px;background:#fff}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+button{border:0;background:#2563eb;color:#fff;font-weight:800;margin-top:12px}
+.mini{background:#e5e7eb;color:#111827;margin-top:0}
+.subbtn{background:#e5e7eb;color:#111827;width:auto;margin-right:6px}
+.danger{background:#fee2e2;color:#991b1b;width:auto}
+.box{background:#eff6ff;border-left:5px solid #2563eb;border-radius:10px;padding:12px;line-height:1.7}
+.ok{background:#ecfdf5;border-left-color:#10b981}
+.warn{background:#fff7ed;border-left-color:#f97316}
+.bad{background:#fef2f2;border-left-color:#ef4444}
+.big{font-size:21px;font-weight:900;margin-bottom:6px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tab{background:#e5e7eb;color:#111827}
+.tab.active{background:#2563eb;color:#fff}
+.panel{display:none}.panel.active{display:block}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{border-bottom:1px solid #e5e7eb;padding:8px 4px;text-align:left;vertical-align:top}
+.pill{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:700;margin:2px}
+@media(max-width:650px){.row,.row3,.tabs{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>睡眠推奨チェッカー 最小版</h1>
+<p>仮眠前に「何分仮眠するか」を出し、本睡眠前に「今夜何時間寝るべきか」を出すツールです。記録は次回・翌日の推奨に使います。</p>
+
+<div class="card">
+<h2>設定</h2>
+<div class="row">
+<div>
+<label>基準睡眠時間</label>
+<select id="baseSleep">
+<option value="6">6時間</option>
+<option value="6.5">6時間30分</option>
+<option value="7" selected>7時間</option>
+<option value="7.5">7時間30分</option>
+<option value="8">8時間</option>
+</select>
+</div>
+<div>
+<label>活動限界倍率</label>
+<select id="limitMultiplier">
+<option value="1.5">本睡眠×1.5</option>
+<option value="1.75">本睡眠×1.75</option>
+<option value="2" selected>本睡眠×2.0</option>
+<option value="2.25">本睡眠×2.25</option>
+<option value="2.5">本睡眠×2.5</option>
+</select>
+</div>
+</div>
+
+<label>仮眠の本睡眠換算率</label>
+<select id="napSleepRate">
+<option value="0.25">25%</option>
+<option value="0.35" selected>35%</option>
+<option value="0.5">50%</option>
+<option value="0.7">70%</option>
+</select>
+
+<p class="small">
+設定はこの3つだけです。<br>
+基準睡眠時間＝本睡眠の基準。活動限界倍率＝本睡眠の何倍くらい起きて動けるか。仮眠の本睡眠換算率＝仮眠を今夜の推奨睡眠からどれだけ引くか。
+</p>
+</div>
+
+<div class="card">
+<h2>使う場面</h2>
+<div class="tabs">
+<button type="button" class="tab active" data-panel="napPanel">仮眠前</button>
+<button type="button" class="tab" data-panel="mainPanel">本睡眠前</button>
+</div>
+
+<div id="napPanel" class="panel active">
+<label>仮眠する日</label>
+<input id="napDate" type="date">
+<div class="row3" style="margin-top:8px">
+<button type="button" class="mini" id="napPrevBtn">前日</button>
+<button type="button" class="mini" id="napTodayBtn">今日</button>
+<button type="button" class="mini" id="napNextBtn">明日</button>
+</div>
+
+<div class="row">
+<div>
+<label>現在時刻</label>
+<select id="nowTime"></select>
+<button type="button" class="mini" id="nowBtn">現在時刻にする</button>
+</div>
+<div>
+<label>今回寝る予定の仮眠</label>
+<select id="plannedNap">
+<option value="0">なし</option>
+<option value="10">10分</option>
+<option value="15">15分</option>
+<option value="20" selected>20分</option>
+<option value="30">30分</option>
+<option value="45">45分</option>
+<option value="60">60分</option>
+<option value="90">90分</option>
+<option value="120">120分</option>
+</select>
+</div>
+</div>
+
+<button type="button" id="checkNapBtn">仮眠目安を見る</button>
+<button type="button" id="saveNapBtn">この仮眠予定を記録する</button>
+<p class="small">仮眠前だけ使います。仮眠後に開く必要はありません。</p>
+</div>
+
+<div id="mainPanel" class="panel">
+<label>本睡眠の起きる日</label>
+<input id="wakeDate" type="date">
+<div class="row3" style="margin-top:8px">
+<button type="button" class="mini" id="wakePrevBtn">前日</button>
+<button type="button" class="mini" id="wakeTodayBtn">今日</button>
+<button type="button" class="mini" id="wakeNextBtn">明日</button>
+</div>
+
+<div class="row">
+<div>
+<label>寝る予定時刻</label>
+<select id="bedTime"></select>
+<button type="button" class="mini" id="bedNowBtn">寝る時刻を現在にする</button>
+</div>
+<div>
+<label>起きる予定時刻</label>
+<select id="wakeTime"></select>
+</div>
+</div>
+
+<button type="button" id="checkMainBtn">本睡眠目安を見る</button>
+<button type="button" id="saveMainBtn">この本睡眠予定を記録する</button>
+<p class="small">本睡眠は「起きる日」基準で記録します。</p>
+</div>
+</div>
+
+<div class="card">
+<h2>判定</h2>
+<div id="summary" class="box">まず「仮眠前」または「本睡眠前」で判定してください。</div>
+</div>
+
+<div class="card">
+<h2>記録</h2>
+<button type="button" class="subbtn" id="csvBtn">CSVで保存</button>
+<button type="button" class="danger" id="clearBtn">全削除</button>
+<div id="history" style="margin-top:12px"></div>
+<p id="statusText" class="small"></p>
+</div>
+
+<div class="card">
+<h2>式</h2>
+<p class="small">
+<span class="pill">活動限界 = 前回本睡眠 × 活動限界倍率 + 今日の仮眠 × 活動限界倍率</span>
+<span class="pill">仮眠前：限界まであと何時間かを見る</span>
+<span class="pill">仮眠前：限界から+1時間/+2時間/+3時間戻す仮眠を全部表示</span>
+<span class="pill">本睡眠前：基準睡眠 + 前回不足 − 今日の仮眠換算</span>
+</p>
+</div>
+</div>
+
+<script>
+(function(){
+const KEY="sleep_minimal_recommend_v1";
+
+function get(id){return document.getElementById(id)}
+function pad(n){return String(n).padStart(2,"0")}
+
+function dateStr(offset){
+  const d=new Date();
+  d.setDate(d.getDate()+offset);
+  return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+}
+
+function moveDateInput(inputId, days){
+  const input=get(inputId);
+  const base=input.value ? new Date(input.value+"T00:00:00") : new Date(dateStr(0)+"T00:00:00");
+  base.setDate(base.getDate()+days);
+  input.value=base.getFullYear()+"-"+pad(base.getMonth()+1)+"-"+pad(base.getDate());
+}
+
+function setDateInputToday(inputId){
+  get(inputId).value=dateStr(0);
+}
+
+function currentTimeValue(){
+  const d=new Date();
+  let h=d.getHours();
+  let m=Math.round(d.getMinutes()/15)*15;
+  if(m===60){h=(h+1)%24;m=0}
+  return pad(h)+":"+pad(m);
+}
+
+function buildTimeOptions(id,def){
+  const el=get(id);
+  el.innerHTML="";
+  for(let h=0;h<24;h++){
+    for(let m=0;m<60;m+=15){
+      const v=pad(h)+":"+pad(m);
+      const o=document.createElement("option");
+      o.value=v;
+      o.textContent=v;
+      if(v===def)o.selected=true;
+      el.appendChild(o);
+    }
+  }
+}
+
+function timeToMin(t){
+  const p=t.split(":").map(Number);
+  return p[0]*60+p[1];
+}
+
+function dateTime(date,time){
+  return new Date(date+"T"+time+":00");
+}
+
+function hoursBetween(startDate,startTime,endDate,endTime){
+  let a=dateTime(startDate,startTime);
+  let b=dateTime(endDate,endTime);
+  if(b<a)b=new Date(b.getTime()+24*60*60*1000);
+  return (b-a)/(1000*60*60);
+}
+
+function diffSleepHours(bedTime,wakeTime){
+  let a=timeToMin(bedTime);
+  let b=timeToMin(wakeTime);
+  if(b<=a)b+=1440;
+  return (b-a)/60;
+}
+
+function bedDateFromWakeDate(wakeDate,bedTime,wakeTime){
+  const bedMin=timeToMin(bedTime);
+  const wakeMin=timeToMin(wakeTime);
+  const d=new Date(wakeDate+"T00:00:00");
+  if(bedMin>=wakeMin)d.setDate(d.getDate()-1);
+  return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+}
+
+function fmt(hours){
+  const total=Math.round(Number(hours||0)*60);
+  const h=Math.floor(total/60);
+  const m=total%60;
+  if(h<=0)return m+"分";
+  return h+"時間"+(m?m+"分":"");
+}
+
+function napMinutesFromHours(hours){
+  const min=Math.max(0,Math.round(hours*60/5)*5);
+  return min;
+}
+
+function load(){
+  try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}
+}
+function store(records){localStorage.setItem(KEY,JSON.stringify(records))}
+
+function settings(){
+  return {
+    base:Number(get("baseSleep").value),
+    mult:Number(get("limitMultiplier").value),
+    napRate:Number(get("napSleepRate").value)
+  };
+}
+
+function latestMainBefore(date){
+  const mains=load().filter(r=>r.type==="main" && r.wakeDate<=date);
+  if(!mains.length)return null;
+  return mains[mains.length-1];
+}
+
+function mainBeforeBedDate(bedDate){
+  const mains=load().filter(r=>r.type==="main" && r.wakeDate<=bedDate);
+  if(!mains.length)return null;
+  return mains[mains.length-1];
+}
+
+function napsOn(date){
+  return load().filter(r=>r.type==="nap" && r.date===date).reduce((s,r)=>s+Number(r.minutes||0),0);
+}
+
+function calcNap(){
+  const s=settings();
+  const date=get("napDate").value||dateStr(0);
+  const now=get("nowTime").value;
+  const last=latestMainBefore(date);
+  const todayNap=napsOn(date);
+
+  if(!last){
+    return {missing:true,date,now};
+  }
+
+  const awake=hoursBetween(last.wakeDate,last.wakeTime,date,now);
+  const baseLimit=Number(last.sleepHours)*s.mult;
+  const napLimit=(todayNap/60)*s.mult;
+  const totalLimit=baseLimit+napLimit;
+  const remaining=totalLimit-awake;
+  const over=Math.max(0,-remaining);
+
+  const napToLine=napMinutesFromHours(over/s.mult);
+  const napPlus1=napMinutesFromHours((over+1)/s.mult);
+  const napPlus2=napMinutesFromHours((over+2)/s.mult);
+  const napPlus3=napMinutesFromHours((over+3)/s.mult);
+
+  let cls="box ok";
+  let title="仮眠：不要寄り";
+  if(remaining<0){cls="box bad";title="活動限界を超過中";}
+  else if(remaining<1){cls="box warn";title="活動限界が近い";}
+  else{cls="box ok";title="活動限界まで余裕あり";}
+
+  return {missing:false,cls,title,date,now,last,todayNap,awake,baseLimit,napLimit,totalLimit,remaining,over,napToLine,napPlus1,napPlus2,napPlus3};
+}
+
+function showNap(){
+  const r=calcNap();
+  if(r.missing){
+    get("summary").innerHTML='<div class="box warn"><div class="big">本睡眠記録なし</div>先に本睡眠前で本睡眠予定を記録してください。仮の目安は20分です。</div>';
+    return r;
+  }
+
+  get("summary").innerHTML='<div class="'+r.cls+'"><div class="big">'+r.title+'</div>'+
+    '前回本睡眠：<b>'+fmt(r.last.sleepHours)+'</b><br>'+
+    '前回起床：<b>'+r.last.wakeDate+' '+r.last.wakeTime+'</b><br>'+
+    '現在：<b>'+r.date+' '+r.now+'</b><br>'+
+    '起床からの経過：<b>'+fmt(r.awake)+'</b><br>'+
+    '基礎活動限界：<b>'+fmt(r.baseLimit)+'</b><br>'+
+    '今日の仮眠による活動補正：<b>'+fmt(r.napLimit)+'</b><br>'+
+    '合計活動限界：<b>'+fmt(r.totalLimit)+'</b><br>'+
+    '限界まであと：<b>'+(r.remaining>=0?fmt(r.remaining):fmt(r.over)+"超過")+'</b><br><br>'+
+    '<b>仮眠目安</b><br>'+
+    '限界ラインまで戻す：<b>'+r.napToLine+'分</b><br>'+
+    '+1時間の余裕を作る：<b>'+r.napPlus1+'分</b><br>'+
+    '+2時間の余裕を作る：<b>'+r.napPlus2+'分</b><br>'+
+    '+3時間の余裕を作る：<b>'+r.napPlus3+'分</b>'+
+    '</div>';
+  return r;
+}
+
+function saveNap(){
+  const r=showNap();
+  const date=get("napDate").value||dateStr(0);
+  const min=Number(get("plannedNap").value);
+  const records=load();
+  records.push({
+    type:"nap",
+    date:date,
+    nowTime:get("nowTime").value,
+    minutes:min,
+    createdAt:new Date().toISOString()
+  });
+  store(records);
+  get("statusText").textContent="仮眠予定 "+min+"分を記録しました。";
+  render();
+  showNap();
+}
+
+function calcMain(){
+  const s=settings();
+  const wakeDate=get("wakeDate").value||dateStr(1);
+  const bed=get("bedTime").value;
+  const wake=get("wakeTime").value;
+  const sleepHours=diffSleepHours(bed,wake);
+  const bedDate=bedDateFromWakeDate(wakeDate,bed,wake);
+  const todayNap=napsOn(bedDate);
+  const prev=mainBeforeBedDate(bedDate);
+
+  let prevDebt=0;
+  if(prev)prevDebt=Math.max(0,s.base-Number(prev.sleepHours));
+
+  const napCredit=(todayNap/60)*s.napRate;
+  const recommended=Math.max(0,s.base+prevDebt-napCredit);
+  const gap=recommended-sleepHours;
+
+  let cls="box ok";
+  let title="本睡眠：推奨ライン到達";
+  if(gap>1){cls="box bad";title="本睡眠：かなり不足";}
+  else if(gap>0){cls="box warn";title="本睡眠：少し不足";}
+  else if(gap<=0){cls="box ok";title="本睡眠：足りる見込み";}
+
+  return {s,wakeDate,bedDate,bed,wake,sleepHours,todayNap,prev,prevDebt,napCredit,recommended,gap,cls,title};
+}
+
+function showMain(){
+  const r=calcMain();
+
+  get("summary").innerHTML='<div class="'+r.cls+'"><div class="big">'+r.title+'</div>'+
+    '寝る日：<b>'+r.bedDate+'</b><br>'+
+    '起きる日：<b>'+r.wakeDate+'</b><br>'+
+    '寝る時刻：<b>'+r.bed+'</b><br>'+
+    '起きる時刻：<b>'+r.wake+'</b><br>'+
+    '予定本睡眠：<b>'+fmt(r.sleepHours)+'</b><br>'+
+    '基準睡眠時間：<b>'+fmt(r.s.base)+'</b><br>'+
+    '前回不足：<b>'+(r.prevDebt>0?fmt(r.prevDebt):"不足なし")+'</b><br>'+
+    '今日の仮眠記録：<b>'+r.todayNap+'分</b><br>'+
+    '仮眠の本睡眠換算：<b>'+fmt(r.napCredit)+'</b><br>'+
+    '今夜の推奨本睡眠：<b>'+fmt(r.recommended)+'</b><br>'+
+    (r.gap>0?'推奨まであと：<b>'+fmt(r.gap)+'</b>':'推奨ラインは満たしています。')+
+    '</div>';
+  return r;
+}
+
+function saveMain(){
+  const r=showMain();
+  const records=load();
+  records.push({
+    type:"main",
+    wakeDate:r.wakeDate,
+    bedDate:r.bedDate,
+    bedTime:r.bed,
+    wakeTime:r.wake,
+    sleepHours:r.sleepHours,
+    recommendedHours:r.recommended,
+    baseSleep:r.s.base,
+    createdAt:new Date().toISOString()
+  });
+  store(records);
+  get("statusText").textContent="本睡眠予定を記録しました。";
+  render();
+}
+
+function render(){
+  const records=load();
+  const history=get("history");
+  if(!records.length){
+    history.innerHTML='<p class="small">まだ記録はありません。</p>';
+    return;
+  }
+
+  history.innerHTML='<table><tr><th>日付</th><th>内容</th><th></th></tr>'+
+    records.slice().reverse().map((r,i)=>{
+      const idx=records.length-1-i;
+      const dateLabel=r.type==="main"?r.wakeDate:r.date;
+      const body=r.type==="main"
+        ? '本睡眠予定<br>寝る '+r.bedDate+' '+r.bedTime+' → 起きる '+r.wakeDate+' '+r.wakeTime+'<br>睡眠 '+fmt(r.sleepHours)+' / 推奨 '+fmt(r.recommendedHours)
+        : '仮眠予定 '+r.minutes+'分';
+      return '<tr><td>'+dateLabel+'</td><td>'+body+'</td><td><button type="button" class="danger delBtn" data-index="'+idx+'">削除</button></td></tr>';
+    }).join("")+'</table>';
+
+  document.querySelectorAll(".delBtn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const idx=Number(btn.dataset.index);
+      const records=load();
+      records.splice(idx,1);
+      store(records);
+      render();
+    });
+  });
+}
+
+function exportCSV(){
+  const records=load();
+  if(!records.length){alert("記録がありません。");return}
+  const lines=[["type","date","wakeDate","bedDate","bedTime","wakeTime","sleepHours","recommendedHours","napMinutes","createdAt"]];
+  records.forEach(r=>{
+    lines.push([r.type,r.date||"",r.wakeDate||"",r.bedDate||"",r.bedTime||"",r.wakeTime||"",r.sleepHours||"",r.recommendedHours||"",r.minutes||"",r.createdAt||""]);
+  });
+  const blob=new Blob([lines.map(row=>row.join(",")).join("\\n")],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="sleep_minimal_recommend_records.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearAll(){
+  if(confirm("全記録を削除しますか？")){
+    localStorage.removeItem(KEY);
+    get("statusText").textContent="全記録を削除しました。";
+    render();
+  }
+}
+
+function switchPanel(id){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.panel===id));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));
+}
+
+function init(){
+  get("napDate").value=dateStr(0);
+  get("wakeDate").value=dateStr(1);
+
+  get("napPrevBtn").addEventListener("click",()=>{moveDateInput("napDate",-1);showNap();});
+  get("napTodayBtn").addEventListener("click",()=>{setDateInputToday("napDate");showNap();});
+  get("napNextBtn").addEventListener("click",()=>{moveDateInput("napDate",1);showNap();});
+
+  get("wakePrevBtn").addEventListener("click",()=>{moveDateInput("wakeDate",-1);showMain();});
+  get("wakeTodayBtn").addEventListener("click",()=>{setDateInputToday("wakeDate");showMain();});
+  get("wakeNextBtn").addEventListener("click",()=>{moveDateInput("wakeDate",1);showMain();});
+
+  buildTimeOptions("nowTime",currentTimeValue());
+  buildTimeOptions("bedTime",currentTimeValue());
+  buildTimeOptions("wakeTime","07:00");
+
+  get("nowBtn").addEventListener("click",()=>{get("nowTime").value=currentTimeValue();showNap();});
+  get("bedNowBtn").addEventListener("click",()=>{get("bedTime").value=currentTimeValue();showMain();});
+
+  get("checkNapBtn").addEventListener("click",showNap);
+  get("saveNapBtn").addEventListener("click",saveNap);
+  get("checkMainBtn").addEventListener("click",showMain);
+  get("saveMainBtn").addEventListener("click",saveMain);
+
+  get("csvBtn").addEventListener("click",exportCSV);
+  get("clearBtn").addEventListener("click",clearAll);
+
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>switchPanel(t.dataset.panel)));
+
+  ["baseSleep","limitMultiplier","napSleepRate","napDate","nowTime","plannedNap","wakeDate","bedTime","wakeTime"].forEach(id=>{
+    get(id).addEventListener("change",()=>{
+      if(get("napPanel").classList.contains("active"))showNap();
+      else showMain();
+    });
+  });
+
+  render();
+}
+
+document.addEventListener("DOMContentLoaded",init);
+})();
+</script>
+</body>
+</html>
